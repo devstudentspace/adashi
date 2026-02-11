@@ -13,7 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRedirectIfAuthenticated } from "@/hooks/use-auth";
 
 export function ForgotPasswordForm({
   className,
@@ -23,6 +24,14 @@ export function ForgotPasswordForm({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Redirect if user is already authenticated
+  const { user, loading } = useRedirectIfAuthenticated();
+
+  // Prevent rendering if user is authenticated
+  if (!loading && user) {
+    return null; // Will be redirected by the hook
+  }
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
