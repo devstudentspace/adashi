@@ -9,13 +9,13 @@
 - [x] Sleek UI Dashboard Shell with Sidebar & Role-based routing.
 - [x] Admin Dashboard: Initial stats and Member list view.
 
-## Sprint 2: Scheme Management & Core Logic
+## Sprint 2: Scheme Management & Core Logic (COMPLETED)
 **Goal:** Allow admins to create and manage Adashi groups (Akawo, Kwanta, Ajita).
-- [ ] Implement Database Schema (`schemes`, `scheme_members`).
-- [ ] Admin: "Create Scheme" wizard (Set frequency, amount, and rules).
-- [ ] Admin: Assign members to schemes.
-- [ ] Admin: Manage member statuses in schemes (Active, Defaulted).
-- [ ] Member: View scheme details and collection rosters (for Kwanta).
+- [x] Implement Database Schema (`schemes`, `scheme_members`).
+- [x] Admin: "Create Scheme" wizard (Set frequency, amount, and rules).
+- [x] Admin: Assign members to schemes.
+- [x] Admin: Manage member statuses in schemes (Active, Defaulted).
+- [x] Member: View scheme details and collection rosters (for Kwanta).
 
 ## Sprint 3: The Ledger & Transaction System
 **Goal:** Implement the core financial recording features.
