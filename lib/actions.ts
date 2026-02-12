@@ -161,7 +161,7 @@ export async function calculateMemberBalance(userId: string, schemeId: string) {
 
 export async function calculatePayout(userId: string, schemeId: string) {
   const supabase = await createClient();
-  
+
   // Get scheme details for rules
   const { data: scheme } = await supabase
     .from('schemes')
@@ -171,27 +171,71 @@ export async function calculatePayout(userId: string, schemeId: string) {
 
   if (!scheme) throw new Error('Scheme not found');
 
-  // Get member balance
-  const { balance, totalDeposits } = await calculateMemberBalance(userId, schemeId);
-  
-  // Calculate service charge based on scheme rules
-  const rules = scheme.rules || {};
-  const serviceChargePercent = rules.service_charge_percent || 0;
-  const fixedServiceCharge = rules.fixed_service_charge || 0;
-  
-  let serviceCharge = 0;
-  if (serviceChargePercent > 0) {
-    serviceCharge = (totalDeposits * serviceChargePercent) / 100;
-  }
-  if (fixedServiceCharge > 0) {
-    serviceCharge += fixedServiceCharge;
+  // Get member's transactions for this scheme
+  const { data: transactions } = await supabase
+    .from('transactions')
+    .select('amount, date, type')
+    .eq('user_id', userId)
+    .eq('scheme_id', schemeId)
+    .eq('type', 'deposit')
+    .order('date', { ascending: true });
+
+  if (!transactions) {
+    return {
+      grossAmount: 0,
+      serviceCharge: 0,
+      netPayout: 0,
+      scheme: {
+        name: scheme.name,
+        type: scheme.type
+      }
+    };
   }
 
-  const netPayout = Math.max(0, balance - serviceCharge);
+  // Group transactions by month
+  const monthlyTransactions: { [key: string]: typeof transactions } = {};
+  
+  transactions.forEach(transaction => {
+    // Extract year-month from the date (e.g., "2023-04" for April 2023)
+    const date = new Date(transaction.date);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (!monthlyTransactions[monthKey]) {
+      monthlyTransactions[monthKey] = [];
+    }
+    monthlyTransactions[monthKey].push(transaction);
+  });
+
+  // Calculate service charges based on one contribution per month
+  let totalServiceCharge = 0;
+  let totalGrossAmount = 0;
+
+  for (const month in monthlyTransactions) {
+    const monthTransactions = monthlyTransactions[month];
+    const totalMonthlyContributions = monthTransactions.length;
+    
+    if (totalMonthlyContributions > 0) {
+      // Take the contribution amount of the first transaction as the standard contribution amount for this month
+      // (assuming all contributions in a scheme are typically the same amount)
+      const contributionAmount = monthTransactions[0].amount;
+      
+      // For each month, one contribution serves as the service charge
+      // So if there are N contributions, the service charge is equal to 1 contribution amount
+      const monthlyServiceCharge = contributionAmount;
+      totalServiceCharge += monthlyServiceCharge;
+      
+      // Add the total amount for this month to the gross amount
+      const monthlyTotal = monthTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
+      totalGrossAmount += monthlyTotal;
+    }
+  }
+
+  // Calculate net payout (gross amount minus service charges)
+  const netPayout = Math.max(0, totalGrossAmount - totalServiceCharge);
 
   return {
-    grossAmount: balance,
-    serviceCharge,
+    grossAmount: totalGrossAmount,
+    serviceCharge: totalServiceCharge,
     netPayout,
     scheme: {
       name: scheme.name,
@@ -204,17 +248,40 @@ export async function processPayout(data: {
   userId: string;
   schemeId: string;
   notes?: string;
+  processFullAmount?: boolean; // Option to process full amount instead of calculated net payout
+  customAmount?: number; // Custom amount to process instead of calculated amounts
 }) {
   const supabase = await createClient();
-  
+
   const { data: { user: adminUser } } = await supabase.auth.getUser();
   if (!adminUser) throw new Error("Unauthorized");
 
   // Calculate payout details
   const payoutDetails = await calculatePayout(data.userId, data.schemeId);
-  
+
   if (payoutDetails.netPayout <= 0) {
     return { error: "No funds available for payout" };
+  }
+
+  // Determine the amount to process based on admin preference
+  let amountToProcess = payoutDetails.netPayout; // Default to net payout
+  
+  if (data.customAmount !== undefined) {
+    // Use custom amount if provided
+    amountToProcess = data.customAmount;
+  } else if (data.processFullAmount) {
+    // Use gross amount if processFullAmount is true
+    amountToProcess = payoutDetails.grossAmount;
+  }
+  // Otherwise, use the calculated net payout (default)
+
+  // Validate that the custom amount doesn't exceed available funds
+  if (amountToProcess > payoutDetails.grossAmount) {
+    return { error: "Requested payout amount exceeds available funds" };
+  }
+
+  if (amountToProcess <= 0) {
+    return { error: "Payout amount must be positive" };
   }
 
   // Record the withdrawal transaction
@@ -224,7 +291,7 @@ export async function processPayout(data: {
       user_id: data.userId,
       scheme_id: data.schemeId,
       admin_id: adminUser.id,
-      amount: payoutDetails.grossAmount,
+      amount: amountToProcess,
       type: 'withdrawal',
       notes: data.notes || `Payout processed - ${new Date().toLocaleDateString()}`,
       date: new Date().toISOString(),
@@ -235,8 +302,8 @@ export async function processPayout(data: {
     return { error: withdrawalError.message };
   }
 
-  // Record service charge if applicable
-  if (payoutDetails.serviceCharge > 0) {
+  // Record service charge if applicable (only when not using custom amount and not processing full amount)
+  if (data.customAmount === undefined && !data.processFullAmount && payoutDetails.serviceCharge > 0) {
     const { error: feeError } = await supabase
       .from('transactions')
       .insert({
@@ -258,11 +325,12 @@ export async function processPayout(data: {
   revalidatePath(`/dashboard/admin/schemes/${data.schemeId}`);
   revalidatePath(`/dashboard/admin/schemes/${data.schemeId}/member/${data.userId}`);
   revalidatePath(`/dashboard/member`);
-  
-  return { 
-    success: true, 
+
+  return {
+    success: true,
     payoutDetails: {
       ...payoutDetails,
+      processedAmount: amountToProcess,
       processedAt: new Date().toISOString()
     }
   };

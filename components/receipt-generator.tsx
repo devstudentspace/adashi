@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Printer, Download } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ReceiptData {
   memberName: string;
@@ -13,6 +15,7 @@ interface ReceiptData {
   grossAmount: number;
   serviceCharge: number;
   netPayout: number;
+  processedAmount?: number; // Optional field for the actual amount processed
   processedAt: string;
   receiptNumber: string;
 }
@@ -53,20 +56,20 @@ export function ReceiptGenerator({ receiptData }: ReceiptGeneratorProps) {
             <div class="receipt-title">ADASHI RECEIPT</div>
             <div class="receipt-subtitle">Digital Savings Manager</div>
         </div>
-        
+
         <div class="section">
             <div><span class="label">Receipt No:</span> <span class="value">${receiptData.receiptNumber}</span></div>
             <div><span class="label">Date:</span> <span class="value">${new Date(receiptData.processedAt).toLocaleDateString()}</span></div>
             <div><span class="label">Time:</span> <span class="value">${new Date(receiptData.processedAt).toLocaleTimeString()}</span></div>
         </div>
-        
+
         <div class="section">
             <div><span class="label">Member:</span> <span class="value">${receiptData.memberName}</span></div>
             <div><span class="label">Phone:</span> <span class="value">${receiptData.memberPhone}</span></div>
             <div><span class="label">Scheme:</span> <span class="value">${receiptData.schemeName}</span></div>
             <div><span class="label">Type:</span> <span class="value">${receiptData.schemeType.toUpperCase()}</span></div>
         </div>
-        
+
         <div class="section">
             <div class="amount-row">
                 <span>Total Savings:</span>
@@ -78,12 +81,18 @@ export function ReceiptGenerator({ receiptData }: ReceiptGeneratorProps) {
                 <span>-₦${receiptData.serviceCharge.toLocaleString()}</span>
             </div>
             ` : ''}
+            ${receiptData.processedAmount !== undefined && receiptData.processedAmount !== receiptData.netPayout ? `
+            <div class="amount-row">
+                <span>Amount Processed:</span>
+                <span>₦${receiptData.processedAmount.toLocaleString()}</span>
+            </div>
+            ` : ''}
             <div class="total-row">
                 <span>Net Payout:</span>
                 <span>₦${receiptData.netPayout.toLocaleString()}</span>
             </div>
         </div>
-        
+
         <div class="footer">
             <p>Thank you for saving with us!</p>
             <p>Keep this receipt for your records</p>
@@ -94,7 +103,7 @@ export function ReceiptGenerator({ receiptData }: ReceiptGeneratorProps) {
     `;
   };
 
-  const handleDownload = () => {
+  const handleDownloadHTML = () => {
     setIsGenerating(true);
     try {
       const receiptHTML = generateReceiptHTML();
@@ -114,6 +123,102 @@ export function ReceiptGenerator({ receiptData }: ReceiptGeneratorProps) {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    setIsGenerating(true);
+    try {
+      // Create a temporary element with the receipt content
+      const receiptElement = document.createElement('div');
+      receiptElement.innerHTML = `
+        <div style="font-family: Arial, sans-serif; max-width: 400px; margin: 0 auto; padding: 20px; border: 1px solid #ddd;">
+          <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+            <div style="font-size: 24px; font-weight: bold; margin-bottom: 5px;">ADASHI RECEIPT</div>
+            <div style="font-size: 14px; color: #666;">Digital Savings Manager</div>
+          </div>
+
+          <div style="margin-bottom: 15px;">
+            <div><strong>Receipt No:</strong> ${receiptData.receiptNumber}</div>
+            <div><strong>Date:</strong> ${new Date(receiptData.processedAt).toLocaleDateString()}</div>
+            <div><strong>Time:</strong> ${new Date(receiptData.processedAt).toLocaleTimeString()}</div>
+          </div>
+
+          <div style="margin-bottom: 15px;">
+            <div><strong>Member:</strong> ${receiptData.memberName}</div>
+            <div><strong>Phone:</strong> ${receiptData.memberPhone}</div>
+            <div><strong>Scheme:</strong> ${receiptData.schemeName}</div>
+            <div><strong>Type:</strong> ${receiptData.schemeType.toUpperCase()}</div>
+          </div>
+
+          <div style="margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+              <span>Total Savings:</span>
+              <span>₦${receiptData.grossAmount.toLocaleString()}</span>
+            </div>
+            ${receiptData.serviceCharge > 0 ? `
+            <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+              <span>Service Charge:</span>
+              <span>-₦${receiptData.serviceCharge.toLocaleString()}</span>
+            </div>
+            ` : ''}
+            ${receiptData.processedAmount !== undefined && receiptData.processedAmount !== receiptData.netPayout ? `
+            <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+              <span>Amount Processed:</span>
+              <span>₦${receiptData.processedAmount.toLocaleString()}</span>
+            </div>
+            ` : ''}
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid #000; font-weight: bold; font-size: 18px;">
+              <span>Net Payout:</span>
+              <span>₦${receiptData.netPayout.toLocaleString()}</span>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 12px; color: #666;">
+            <p>Thank you for saving with us!</p>
+            <p>Keep this receipt for your records</p>
+            <p>Generated by Adashi Digital Manager</p>
+          </div>
+        </div>
+      `;
+      
+      // Apply styles to the temporary element
+      receiptElement.style.position = 'absolute';
+      receiptElement.style.left = '-9999px';
+      document.body.appendChild(receiptElement);
+
+      // Use html2canvas to capture the element
+      const canvas = await html2canvas(receiptElement);
+      const imgData = canvas.toDataURL('image/png');
+      
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add additional pages if content is longer
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Save the PDF
+      pdf.save(`receipt-${receiptData.receiptNumber}.pdf`);
+      
+      // Clean up
+      document.body.removeChild(receiptElement);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -126,7 +231,7 @@ export function ReceiptGenerator({ receiptData }: ReceiptGeneratorProps) {
             <div className="text-lg font-bold">ADASHI RECEIPT</div>
             <div className="text-xs text-gray-600">Digital Savings Manager</div>
           </div>
-          
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="font-semibold">Receipt No:</span>
@@ -137,12 +242,12 @@ export function ReceiptGenerator({ receiptData }: ReceiptGeneratorProps) {
               <span>{new Date(receiptData.processedAt).toLocaleDateString()}</span>
             </div>
           </div>
-          
+
           <div className="mt-4 space-y-1 text-sm">
             <div><span className="font-semibold">Member:</span> {receiptData.memberName}</div>
             <div><span className="font-semibold">Scheme:</span> {receiptData.schemeName}</div>
           </div>
-          
+
           <div className="mt-4 space-y-1 text-sm">
             <div className="flex justify-between">
               <span>Total Savings:</span>
@@ -154,12 +259,18 @@ export function ReceiptGenerator({ receiptData }: ReceiptGeneratorProps) {
                 <span>-₦{receiptData.serviceCharge.toLocaleString()}</span>
               </div>
             )}
+            {receiptData.processedAmount !== undefined && receiptData.processedAmount !== receiptData.netPayout && (
+              <div className="flex justify-between">
+                <span>Amount Processed:</span>
+                <span>₦{receiptData.processedAmount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t border-black pt-2 font-bold">
               <span>Net Payout:</span>
               <span>₦{receiptData.netPayout.toLocaleString()}</span>
             </div>
           </div>
-          
+
           <div className="mt-4 text-center text-xs text-gray-600">
             <p>Thank you for saving with us!</p>
           </div>
@@ -171,9 +282,13 @@ export function ReceiptGenerator({ receiptData }: ReceiptGeneratorProps) {
             <Printer className="h-4 w-4 mr-2" />
             Print
           </Button>
-          <Button onClick={handleDownload} disabled={isGenerating} className="flex-1">
+          <Button onClick={handleDownloadHTML} disabled={isGenerating} className="flex-1">
             <Download className="h-4 w-4 mr-2" />
-            {isGenerating ? 'Generating...' : 'Download'}
+            {isGenerating ? 'Generating...' : 'Download HTML'}
+          </Button>
+          <Button onClick={handleDownloadPDF} disabled={isGenerating} className="flex-1">
+            <Download className="h-4 w-4 mr-2" />
+            {isGenerating ? 'Generating...' : 'Download PDF'}
           </Button>
         </div>
       </CardContent>

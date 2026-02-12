@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { 
@@ -13,11 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 export default async function MemberDashboard() {
   const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  
+  // Get user for data fetching (non-blocking for route, but needed for query)
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (authError || !user) {
-    redirect("/auth/login");
-  }
+  if (!user) return null;
 
   // Fetch memberships with scheme details
   const { data: memberships } = await supabase

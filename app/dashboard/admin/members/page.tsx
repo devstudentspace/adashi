@@ -3,18 +3,17 @@ import { CreateMemberForm } from "@/components/create-member-form";
 import { MemberSearch } from "@/components/member-search";
 import { ViewToggle } from "@/components/view-toggle";
 import MembersTable from "./members-table";
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function TableSkeleton() {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-card border rounded-xl p-4 h-32 animate-pulse" />
+          <Skeleton key={i} className="h-32 rounded-xl" />
         ))}
       </div>
-      <div className="hidden md:block border rounded-xl h-64 animate-pulse bg-muted/20" />
+      <Skeleton className="hidden md:block h-64 rounded-xl" />
     </div>
   );
 }
@@ -22,13 +21,6 @@ function TableSkeleton() {
 export default async function MembersPage(props: {
   searchParams: Promise<{ query?: string; view?: string }>;
 }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login");
-  }
-
   const searchParams = await props.searchParams;
   const query = searchParams.query;
   const view = searchParams.view || "auto";

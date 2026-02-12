@@ -36,6 +36,9 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
   const [isCalculating, setIsCalculating] = useState(true);
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+  const [processFullAmount, setProcessFullAmount] = useState(false); // Option to process full amount
+  const [useCustomAmount, setUseCustomAmount] = useState(false); // Option to use custom amount
+  const [customAmount, setCustomAmount] = useState<number>(0); // Custom amount to process
 
   useEffect(() => {
     const loadPayoutDetails = async () => {
@@ -58,17 +61,31 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
 
     setIsLoading(true);
     try {
+      // Determine which amount to process based on user selection
+      let amountToProcess: number | undefined = undefined;
+      
+      if (useCustomAmount && customAmount > 0) {
+        amountToProcess = customAmount;
+      }
+
       const result = await processPayout({
         userId,
         schemeId,
+        processFullAmount, // Pass the option to process full amount
+        customAmount: amountToProcess, // Pass custom amount if specified
         notes: notes || `Payout for ${memberName} - ${new Date().toLocaleDateString()}`
       });
 
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success(`Payout of ₦${payoutDetails.netPayout.toLocaleString()} processed for ${memberName}`);
+        // Use the processed amount from the result
+        const processedAmount = result.payoutDetails.processedAmount || 
+                               (amountToProcess !== undefined ? amountToProcess : 
+                               (processFullAmount ? payoutDetails.grossAmount : payoutDetails.netPayout));
         
+        toast.success(`Payout of ₦${processedAmount.toLocaleString()} processed for ${memberName}`);
+
         // Generate receipt data
         const receipt = {
           memberName,
@@ -78,10 +95,11 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
           grossAmount: payoutDetails.grossAmount,
           serviceCharge: payoutDetails.serviceCharge,
           netPayout: payoutDetails.netPayout,
+          processedAmount: processedAmount, // Include the actual processed amount
           processedAt: new Date().toISOString(),
           receiptNumber: `RCP-${Date.now()}-${userId.slice(-6).toUpperCase()}`
         };
-        
+
         setReceiptData(receipt);
         setShowReceipt(true);
         onSuccess?.();
@@ -172,18 +190,78 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
           />
         </div>
 
+        {/* Process Full Amount Toggle */}
+        <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded-lg border border-blue-100">
+          <input
+            type="checkbox"
+            id="processFullAmount"
+            checked={processFullAmount}
+            onChange={(e) => {
+              setProcessFullAmount(e.target.checked);
+              if (e.target.checked) setUseCustomAmount(false); // Uncheck custom if full is selected
+            }}
+            className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500"
+          />
+          <label htmlFor="processFullAmount" className="text-sm font-medium text-blue-800">
+            Process Full Amount (₦{payoutDetails.grossAmount.toLocaleString()})
+          </label>
+        </div>
+
+        {/* Use Custom Amount Toggle */}
+        <div className="flex items-center space-x-2 p-3 bg-purple-50 rounded-lg border border-purple-100">
+          <input
+            type="checkbox"
+            id="useCustomAmount"
+            checked={useCustomAmount}
+            onChange={(e) => {
+              setUseCustomAmount(e.target.checked);
+              if (e.target.checked) setProcessFullAmount(false); // Uncheck full if custom is selected
+            }}
+            className="h-4 w-4 text-purple-600 rounded focus:ring-purple-500"
+          />
+          <label htmlFor="useCustomAmount" className="text-sm font-medium text-purple-800">
+            Use Custom Amount
+          </label>
+        </div>
+
+        {/* Custom Amount Input */}
+        {useCustomAmount && (
+          <div className="space-y-2 p-3 bg-purple-50 rounded-lg border border-purple-100">
+            <Label htmlFor="customAmount">Enter Custom Amount (₦)</Label>
+            <Input
+              id="customAmount"
+              type="number"
+              min="0"
+              max={payoutDetails.grossAmount}
+              value={customAmount || ''}
+              onChange={(e) => setCustomAmount(Number(e.target.value))}
+              placeholder={`Enter amount up to ₦${payoutDetails.grossAmount.toLocaleString()}`}
+              className="text-lg"
+            />
+            <p className="text-xs text-muted-foreground">
+              Current balance after payout: ₦{(payoutDetails.grossAmount - (customAmount || 0)).toLocaleString()}
+            </p>
+          </div>
+        )}
+
         {/* Action Button */}
-        <Button 
+        <Button
           onClick={handleProcessPayout}
-          disabled={isLoading}
+          disabled={isLoading || (useCustomAmount && (customAmount <= 0 || customAmount > payoutDetails.grossAmount))}
           className="w-full"
           size="lg"
         >
-          {isLoading ? 'Processing...' : `Process Payout of ₦${payoutDetails.netPayout.toLocaleString()}`}
+          {isLoading ? 'Processing...' : 
+           useCustomAmount ? `Process Custom Payout of ₦${customAmount.toLocaleString()}` :
+           processFullAmount ? `Process Full Payout of ₦${payoutDetails.grossAmount.toLocaleString()}` :
+           `Process Payout of ₦${payoutDetails.netPayout.toLocaleString()}`}
         </Button>
 
         <p className="text-xs text-muted-foreground text-center">
-          This action will record the withdrawal and reset the member's balance.
+          This action will record the withdrawal and adjust the member's balance.
+          {processFullAmount ? ' Full amount will be processed.' : 
+           useCustomAmount ? ` Custom amount ₦${customAmount.toLocaleString()} will be processed.` :
+           ` Service charges (₦${payoutDetails.serviceCharge.toLocaleString()}) will be deducted.`}
         </p>
       </CardContent>
     </Card>
