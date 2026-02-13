@@ -52,12 +52,15 @@ export function ManageMemberStatusForm({ schemeId }: { schemeId: string }) {
         if (error) throw error;
         
         // Transform the data to match our interface
-        const transformedMembers = data.map(item => ({
-          id: item.profiles.id,
-          full_name: item.profiles.full_name,
-          phone_number: item.profiles.phone_number,
-          status: item.status as 'active' | 'completed' | 'defaulted',
-        }));
+        const transformedMembers = (data || []).map(item => {
+          const profile = Array.isArray(item.profiles) ? item.profiles[0] : item.profiles;
+          return {
+            id: profile?.id || '',
+            full_name: profile?.full_name || 'Unknown',
+            phone_number: profile?.phone_number || 'N/A',
+            status: item.status as 'active' | 'completed' | 'defaulted',
+          };
+        });
         
         setMembers(transformedMembers);
       } catch (err) {

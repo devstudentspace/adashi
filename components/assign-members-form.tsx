@@ -109,7 +109,7 @@ export function AssignMembersForm({ schemeId }: { schemeId: string }) {
         
         const { error: insertError } = await supabase
           .from('scheme_members')
-          .insert(newAssignments, { onConflict: ['scheme_id', 'user_id'] });
+          .insert(newAssignments);
         
         if (insertError) throw insertError;
       }

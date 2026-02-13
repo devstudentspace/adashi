@@ -78,7 +78,7 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
 
       if (result.error) {
         toast.error(result.error);
-      } else {
+      } else if (result.payoutDetails) {
         // Use the processed amount from the result
         const processedAmount = result.payoutDetails.processedAmount || 
                                (amountToProcess !== undefined ? amountToProcess : 

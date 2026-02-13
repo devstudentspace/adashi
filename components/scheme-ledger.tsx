@@ -9,13 +9,11 @@ interface Transaction {
   type: string;
   date: string;
   notes: string;
-  profiles: {
-    full_name: string;
-  };
+  profiles: any; // Handle Supabase returning either object or array for joined profiles
 }
 
 interface SchemeLedgerProps {
-  transactions: Transaction[];
+  transactions: any[]; // Using any[] here to be more flexible with Supabase results
 }
 
 export function SchemeLedger({ transactions }: SchemeLedgerProps) {
@@ -38,24 +36,29 @@ export function SchemeLedger({ transactions }: SchemeLedgerProps) {
             </thead>
             <tbody>
               {transactions.length > 0 ? (
-                transactions.map((t) => (
-                  <tr key={t.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                    <td className="py-3 px-4 text-sm whitespace-nowrap">
-                      {new Date(t.date).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      {t.profiles?.full_name}
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant={t.type === 'deposit' ? 'default' : 'secondary'} className="capitalize text-[10px]">
-                        {t.type}
-                      </Badge>
-                    </td>
-                    <td className={`py-3 px-4 text-right text-sm font-bold ${t.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
-                      {t.type === 'deposit' ? '+' : '-'}₦{Number(t.amount).toLocaleString()}
-                    </td>
-                  </tr>
-                ))
+                transactions.map((t) => {
+                  const profile = Array.isArray(t.profiles) ? t.profiles[0] : t.profiles;
+                  const fullName = profile?.full_name || 'Unknown';
+
+                  return (
+                    <tr key={t.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+                      <td className="py-3 px-4 text-sm whitespace-nowrap">
+                        {new Date(t.date).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {fullName}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge variant={t.type === 'deposit' ? 'default' : 'secondary'} className="capitalize text-[10px]">
+                          {t.type}
+                        </Badge>
+                      </td>
+                      <td className={`py-3 px-4 text-right text-sm font-bold ${t.type === 'deposit' ? 'text-green-600' : 'text-red-600'}`}>
+                        {t.type === 'deposit' ? '+' : '-'}₦{Number(t.amount).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-muted-foreground text-sm">

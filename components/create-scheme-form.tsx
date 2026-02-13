@@ -48,6 +48,11 @@ export function CreateSchemeForm() {
         throw new Error('Contribution amount must be greater than 0');
       }
 
+      // Get current user to set as admin
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('User not authenticated');
+
       // Prepare scheme data
       const schemeData = {
         name: name.trim(),
@@ -56,15 +61,8 @@ export function CreateSchemeForm() {
         frequency,
         ...(type === 'ajita' && endDate && { end_date: endDate }),
         rules: rules ? JSON.parse(rules) : {},
+        admin_id: user.id,
       };
-
-      // Get current user to set as admin
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) throw new Error('User not authenticated');
-
-      // Add admin ID to scheme data
-      schemeData.admin_id = user.id;
 
       // Insert the new scheme
       const { data, error: insertError } = await supabase
