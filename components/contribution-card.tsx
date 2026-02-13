@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { 
@@ -43,9 +43,14 @@ export function ContributionCard({
   onCellClick,
   isLoading = false
 }: ContributionCardProps) {
+  const [mounted, setMounted] = useState(false);
   const [monthsToShow, setMonthsToShow] = useState(3);
   const [gridSize, setGridSize] = useState(32); 
   const [processingDate, setProcessingDate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   
   const today = startOfToday();
   const startDateTime = startOfDay(new Date(startDate));
@@ -139,54 +144,58 @@ export function ContributionCard({
           </div>
 
           <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 sm:hidden">
-                  <Settings2 className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-4" align="end">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase text-muted-foreground">Months to view</span>
-                    <Select value={monthsToShow.toString()} onValueChange={(v) => setMonthsToShow(parseInt(v))}>
-                      <SelectTrigger className="h-9 w-full text-xs font-black">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[1, 3, 6, 12].map(n => (
-                          <SelectItem key={n} value={n.toString()}>{n} Months</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+            {mounted && (
+              <>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-9 w-9 sm:hidden">
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-4" align="end">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-black uppercase text-muted-foreground">Months to view</span>
+                        <Select value={monthsToShow.toString()} onValueChange={(v) => setMonthsToShow(parseInt(v))}>
+                          <SelectTrigger className="h-9 w-full text-xs font-black">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 3, 6, 12].map(n => (
+                              <SelectItem key={n} value={n.toString()}>{n} Months</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-black uppercase text-muted-foreground">Grid Zoom</span>
+                        <Slider value={[gridSize]} min={28} max={48} step={4} onValueChange={([v]) => setGridSize(v)} />
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <div className="hidden sm:flex items-center gap-3 bg-background/50 p-1.5 rounded-lg border border-primary/10 shadow-sm">
+                  <div className="flex items-center gap-1.5 border-r pr-3">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Period</span>
+                      <Select value={monthsToShow.toString()} onValueChange={(v) => setMonthsToShow(parseInt(v))}>
+                        <SelectTrigger className="h-7 w-16 text-[10px] font-black border-none bg-transparent focus:ring-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[1, 3, 6, 12].map(n => (
+                            <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                   </div>
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase text-muted-foreground">Grid Zoom</span>
-                    <Slider value={[gridSize]} min={28} max={48} step={4} onValueChange={([v]) => setGridSize(v)} />
+                  <div className="flex items-center gap-2 pl-1 pr-2">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">Zoom</span>
+                      <Slider value={[gridSize]} min={28} max={48} step={4} onValueChange={([v]) => setGridSize(v)} className="w-16" />
                   </div>
                 </div>
-              </PopoverContent>
-            </Popover>
-
-            <div className="hidden sm:flex items-center gap-3 bg-background/50 p-1.5 rounded-lg border border-primary/10 shadow-sm">
-               <div className="flex items-center gap-1.5 border-r pr-3">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Period</span>
-                  <Select value={monthsToShow.toString()} onValueChange={(v) => setMonthsToShow(parseInt(v))}>
-                     <SelectTrigger className="h-7 w-16 text-[10px] font-black border-none bg-transparent focus:ring-0">
-                       <SelectValue />
-                     </SelectTrigger>
-                     <SelectContent>
-                       {[1, 3, 6, 12].map(n => (
-                         <SelectItem key={n} value={n.toString()}>{n}</SelectItem>
-                       ))}
-                     </SelectContent>
-                  </Select>
-               </div>
-               <div className="flex items-center gap-2 pl-1 pr-2">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">Zoom</span>
-                  <Slider value={[gridSize]} min={28} max={48} step={4} onValueChange={([v]) => setGridSize(v)} className="w-16" />
-               </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
       </CardHeader>
