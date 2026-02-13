@@ -64,11 +64,13 @@ export function ContributionCard({
     const isFuture = isAfter(date, today);
     const isPast = isBefore(date, startDateTime) && !isSameDay(date, startDateTime);
     
-    // Get contributions for this specific day
+    // Get contributions for this specific day - ONLY if they are on or after startDateTime
     const dayContributions = transactions.filter(t => {
       const transactionDate = startOfDay(new Date(t.date));
       const cellDate = startOfDay(date);
-      return t.type === 'deposit' && isSameDay(transactionDate, cellDate);
+      return t.type === 'deposit' && 
+             isSameDay(transactionDate, cellDate) && 
+             (isAfter(transactionDate, startDateTime) || isSameDay(transactionDate, startDateTime));
     });
     
     const hasContribution = dayContributions.length > 0;
@@ -82,11 +84,16 @@ export function ContributionCard({
       let excessContributions = 0;
       
       // Go through all previous days from start date to current date
-      let checkDate = startOfDay(new Date(startDate));
+      let checkDate = startOfToday().getTime() > startDateTime.getTime() 
+        ? startDateTime 
+        : startOfDay(new Date(startDate));
+      
       while (isBefore(checkDate, currentDate)) {
         const dayContribs = transactions.filter(t => {
           const transactionDate = startOfDay(new Date(t.date));
-          return t.type === 'deposit' && isSameDay(transactionDate, checkDate);
+          return t.type === 'deposit' && 
+                 isSameDay(transactionDate, checkDate) &&
+                 (isAfter(transactionDate, startDateTime) || isSameDay(transactionDate, startDateTime));
         });
         
         if (dayContribs.length > 1) {
@@ -223,11 +230,13 @@ export function ContributionCard({
             <div className="flex flex-col gap-1.5">
                {months.map((month, mIdx) => {
                   const daysInMonth = getDaysInMonth(month);
-                  const monthPaidCount = transactions.filter(t => 
-                    t.type === 'deposit' && 
+                  const monthPaidCount = transactions.filter(t => {
+                    const transactionDate = startOfDay(new Date(t.date));
+                    return t.type === 'deposit' && 
                     new Date(t.date).getMonth() === month.getMonth() && 
-                    new Date(t.date).getFullYear() === month.getFullYear()
-                  ).length;
+                    new Date(t.date).getFullYear() === month.getFullYear() &&
+                    (isAfter(transactionDate, startDateTime) || isSameDay(transactionDate, startDateTime));
+                  }).length;
 
                   return (
                     <div key={mIdx} className="flex items-center group/row">
@@ -315,25 +324,37 @@ export function ContributionCard({
           <div className="py-2.5 px-4 flex flex-col">
             <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Saved</span>
             <span className="text-xs font-black text-foreground">
-              ₦{transactions.filter(t => t.type === 'deposit').reduce((acc, t) => acc + Number(t.amount), 0).toLocaleString()}
+              ₦{transactions.filter(t => {
+                const transactionDate = startOfDay(new Date(t.date));
+                return t.type === 'deposit' && (isAfter(transactionDate, startDateTime) || isSameDay(transactionDate, startDateTime));
+              }).reduce((acc, t) => acc + Number(t.amount), 0).toLocaleString()}
             </span>
           </div>
           <div className="py-2.5 px-4 flex flex-col">
             <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Contributions</span>
             <span className="text-xs font-black text-foreground">
-              {transactions.filter(t => t.type === 'deposit').length} times
+              {transactions.filter(t => {
+                const transactionDate = startOfDay(new Date(t.date));
+                return t.type === 'deposit' && (isAfter(transactionDate, startDateTime) || isSameDay(transactionDate, startDateTime));
+              }).length} times
             </span>
           </div>
           <div className="py-2.5 px-4 flex flex-col">
             <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Consistency</span>
             <div className="flex items-center gap-1.5">
                <span className="text-[10px] font-black text-emerald-700">
-                 {Math.round((transactions.filter(t => t.type === 'deposit').length / (monthsToShow * 30)) * 100)}%
+                 {Math.round((transactions.filter(t => {
+                    const transactionDate = startOfDay(new Date(t.date));
+                    return t.type === 'deposit' && (isAfter(transactionDate, startDateTime) || isSameDay(transactionDate, startDateTime));
+                 }).length / (monthsToShow * 30)) * 100)}%
                </span>
                <div className="h-1 w-8 bg-emerald-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-emerald-500" 
-                    style={{ width: `${Math.min(100, Math.round((transactions.filter(t => t.type === 'deposit').length / (monthsToShow * 30)) * 100))}%` }} 
+                    style={{ width: `${Math.min(100, Math.round((transactions.filter(t => {
+                        const transactionDate = startOfDay(new Date(t.date));
+                        return t.type === 'deposit' && (isAfter(transactionDate, startDateTime) || isSameDay(transactionDate, startDateTime));
+                    }).length / (monthsToShow * 30)) * 100))}%` }} 
                   />
                </div>
             </div>

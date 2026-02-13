@@ -41,8 +41,11 @@ export default async function SchemeDetailsPage({ params }: Props) {
     redirect('/dashboard/admin/schemes');
   }
 
-  // Fetch recent transactions for this scheme
-  const { data: transactions } = await supabase
+  // Fetch recent transactions for this scheme (only for active cycles)
+  // To correctly filter for current cycles of all members, we need to consider their individual joined_at dates.
+  // Since we fetch transactions for the whole scheme, we'll fetch them all and then filter in memory
+  // based on the joined_at dates we already have from the scheme_members join above.
+  const { data: allTransactions } = await supabase
     .from('transactions')
     .select(`
       id,
@@ -55,9 +58,21 @@ export default async function SchemeDetailsPage({ params }: Props) {
     `)
     .eq('scheme_id', resolvedParams.id)
     .order('date', { ascending: false })
-    .limit(100); // Increased limit to ensure we get today's transactions
+    .limit(300); // Fetch more to allow for filtering
 
-  // Identify who paid today
+  // Map user_id to joined_at for quick lookup
+  const userJoinDates = new Map(
+    scheme.scheme_members.map((m: any) => [m.user_id, new Date(m.joined_at)])
+  );
+
+  // Filter transactions: only show if date >= member's joined_at
+  const transactions = allTransactions?.filter(t => {
+    const joinDate = userJoinDates.get(t.user_id);
+    if (!joinDate) return false; // Not a current member of the scheme
+    return new Date(t.date) >= joinDate;
+  }) || [];
+
+  // Identify who paid today (using the filtered transactions)
   const today = new Date();
   // Create a date object for today at the start of the day for comparison
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
