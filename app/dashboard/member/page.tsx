@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 export default async function MemberDashboard() {
   const supabase = await createClient();
   
-  // Get user for data fetching (non-blocking for route, but needed for query)
+  // Get user for data fetching
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return null;
@@ -34,19 +34,43 @@ export default async function MemberDashboard() {
     `)
     .eq('user_id', user.id);
 
-  // Fetch recent transactions
-  const { data: transactions } = await supabase
+  const activeSchemes = memberships?.filter(m => m.status === 'active') || [];
+  
+  // Get the earliest joined_at date from active schemes to filter global stats
+  const earliestActiveJoinDate = activeSchemes.length > 0 
+    ? new Date(Math.min(...activeSchemes.map(m => new Date(m.joined_at).getTime()))).toISOString()
+    : null;
+
+  // 1. Fetch recent transactions (filtered by active join dates)
+  let transactionsQuery = supabase
     .from('transactions')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', user.id);
+
+  if (earliestActiveJoinDate) {
+    transactionsQuery = transactionsQuery.gte('date', earliestActiveJoinDate);
+  } else {
+    // If no active schemes, don't show any transactions
+    transactionsQuery = transactionsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+  }
+
+  const { data: transactions } = await transactionsQuery
     .order('date', { ascending: false })
     .limit(5);
 
-  // Fetch all transactions for stats
-  const { data: allTransactions } = await supabase
+  // 2. Fetch all transactions for stats (filtered)
+  let statsQuery = supabase
     .from('transactions')
     .select('amount, type')
     .eq('user_id', user.id);
+
+  if (earliestActiveJoinDate) {
+    statsQuery = statsQuery.gte('date', earliestActiveJoinDate);
+  } else {
+    statsQuery = statsQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+  }
+
+  const { data: allTransactions } = await statsQuery;
 
   const totalSaved = allTransactions
     ?.filter(t => t.type === 'deposit')
@@ -57,10 +81,9 @@ export default async function MemberDashboard() {
     .reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
   const availableBalance = totalSaved - totalWithdrawn;
-  const activeSchemes = memberships?.filter(m => m.status === 'active') || [];
   
-  const joinedDate = memberships && memberships.length > 0 
-    ? new Date(Math.min(...memberships.map(m => new Date(m.joined_at).getTime())))
+  const joinedDate = earliestActiveJoinDate 
+    ? new Date(earliestActiveJoinDate)
     : new Date();
 
   return (

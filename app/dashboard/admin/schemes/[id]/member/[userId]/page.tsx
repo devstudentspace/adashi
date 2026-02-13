@@ -49,15 +49,16 @@ export default async function AdminMemberDetailsPage({ params }: Props) {
     redirect(`/dashboard/admin/schemes/${resolvedParams.id}`);
   }
 
-  // Fetch transactions for ContributionCard (minimal fields)
+  // Fetch transactions for ContributionCard (only since they joined this session)
   const { data: contributionTransactions } = await supabase
     .from('transactions')
     .select('amount, date, type')
     .eq('scheme_id', resolvedParams.id)
     .eq('user_id', resolvedParams.userId)
+    .gte('date', membership.joined_at)
     .order('date', { ascending: false });
 
-  // Fetch full transaction data for SchemeLedger
+  // Fetch full transaction data for SchemeLedger (only since they joined this session)
   const { data: fullTransactions } = await supabase
     .from('transactions')
     .select(`
@@ -70,6 +71,7 @@ export default async function AdminMemberDetailsPage({ params }: Props) {
     `)
     .eq('scheme_id', resolvedParams.id)
     .eq('user_id', resolvedParams.userId)
+    .gte('date', membership.joined_at)
     .order('date', { ascending: false });
 
   return (
@@ -109,6 +111,7 @@ export default async function AdminMemberDetailsPage({ params }: Props) {
             memberName={memberProfile.full_name}
             memberPhone={memberProfile.phone_number}
             schemeType={scheme.type}
+            joinedAt={membership.joined_at}
           />
 
           <Card className="rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-none sm:shadow-md">

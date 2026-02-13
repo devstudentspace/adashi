@@ -42,15 +42,16 @@ export default async function MemberSchemeDetailsPage({ params }: Props) {
     redirect("/dashboard/member");
   }
 
-  // Fetch transactions for THIS user in THIS scheme
+  const myMembership = scheme.scheme_members.find((m: any) => m.user_id === user.id);
+  const Icon = scheme.type === 'ajita' ? Lock : Calendar;
+
+  // Fetch transactions for THIS user in THIS scheme (only since they joined this session)
   const { data: transactions } = await supabase
     .from('transactions')
     .select('amount, date, type')
     .eq('scheme_id', resolvedParams.id)
-    .eq('user_id', user.id);
-
-  const myMembership = scheme.scheme_members.find((m: any) => m.user_id === user.id);
-  const Icon = scheme.type === 'ajita' ? Lock : Calendar;
+    .eq('user_id', user.id)
+    .gte('date', myMembership?.joined_at || scheme.start_date);
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">

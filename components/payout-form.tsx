@@ -17,6 +17,7 @@ interface PayoutFormProps {
   memberName: string;
   memberPhone?: string;
   onSuccess?: () => void;
+  joinedAt?: string;
 }
 
 interface PayoutDetails {
@@ -29,7 +30,7 @@ interface PayoutDetails {
   };
 }
 
-export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSuccess }: PayoutFormProps) {
+export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSuccess, joinedAt }: PayoutFormProps) {
   const [payoutDetails, setPayoutDetails] = useState<PayoutDetails | null>(null);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +44,7 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
   useEffect(() => {
     const loadPayoutDetails = async () => {
       try {
-        const details = await calculatePayout(userId, schemeId);
+        const details = await calculatePayout(userId, schemeId, joinedAt);
         setPayoutDetails(details);
       } catch (error) {
         toast.error('Failed to calculate payout');
@@ -54,7 +55,7 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
     };
 
     loadPayoutDetails();
-  }, [userId, schemeId]);
+  }, [userId, schemeId, joinedAt]);
 
   const handleProcessPayout = async () => {
     if (!payoutDetails) return;
@@ -73,7 +74,8 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
         schemeId,
         processFullAmount, // Pass the option to process full amount
         customAmount: amountToProcess, // Pass custom amount if specified
-        notes: notes || `Payout for ${memberName} - ${new Date().toLocaleDateString()}`
+        notes: notes || `Payout for ${memberName} - ${new Date().toLocaleDateString()}`,
+        sinceDate: joinedAt
       });
 
       if (result.error) {

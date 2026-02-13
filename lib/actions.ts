@@ -131,14 +131,37 @@ export async function hasUserContributedToday(userId: string, schemeId: string) 
   return data && data.length > 0;
 }
 
-export async function calculateMemberBalance(userId: string, schemeId: string) {
+export async function calculateMemberBalance(userId: string, schemeId: string, sinceDate?: string) {
   const supabase = await createClient();
   
-  const { data: transactions } = await supabase
+  let effectiveSinceDate = sinceDate;
+
+  if (!effectiveSinceDate) {
+    // If no sinceDate provided, default to the membership joined_at date
+    const { data: membership } = await supabase
+      .from('scheme_members')
+      .select('joined_at')
+      .eq('user_id', userId)
+      .eq('scheme_id', schemeId)
+      .maybeSingle();
+    
+    if (membership) {
+      effectiveSinceDate = membership.joined_at;
+    }
+  }
+
+  let query = supabase
     .from('transactions')
     .select('amount, type')
     .eq('user_id', userId)
     .eq('scheme_id', schemeId);
+
+  if (effectiveSinceDate) {
+    query = query.gte('date', effectiveSinceDate);
+  }
+
+  const { data: transactions } = await query;
+  // ... rest of the function (no changes to the rest)
 
   if (!transactions) return { balance: 0, totalDeposits: 0, totalWithdrawals: 0, totalFees: 0 };
 
@@ -159,8 +182,23 @@ export async function calculateMemberBalance(userId: string, schemeId: string) {
   return { balance, totalDeposits, totalWithdrawals, totalFees };
 }
 
-export async function calculatePayout(userId: string, schemeId: string) {
+export async function calculatePayout(userId: string, schemeId: string, sinceDate?: string) {
   const supabase = await createClient();
+
+  let effectiveSinceDate = sinceDate;
+
+  if (!effectiveSinceDate) {
+    const { data: membership } = await supabase
+      .from('scheme_members')
+      .select('joined_at')
+      .eq('user_id', userId)
+      .eq('scheme_id', schemeId)
+      .maybeSingle();
+    
+    if (membership) {
+      effectiveSinceDate = membership.joined_at;
+    }
+  }
 
   // Get scheme details for rules
   const { data: scheme } = await supabase
@@ -172,13 +210,18 @@ export async function calculatePayout(userId: string, schemeId: string) {
   if (!scheme) throw new Error('Scheme not found');
 
   // Get member's transactions for this scheme
-  const { data: transactions } = await supabase
+  let query = supabase
     .from('transactions')
     .select('amount, date, type')
     .eq('user_id', userId)
     .eq('scheme_id', schemeId)
-    .eq('type', 'deposit')
-    .order('date', { ascending: true });
+    .eq('type', 'deposit');
+
+  if (effectiveSinceDate) {
+    query = query.gte('date', effectiveSinceDate);
+  }
+
+  const { data: transactions } = await query.order('date', { ascending: true });
 
   if (!transactions) {
     return {
@@ -250,6 +293,7 @@ export async function processPayout(data: {
   notes?: string;
   processFullAmount?: boolean; // Option to process full amount instead of calculated net payout
   customAmount?: number; // Custom amount to process instead of calculated amounts
+  sinceDate?: string; // Optional date for re-assignment "fresh start"
 }) {
   const supabase = await createClient();
 
@@ -257,7 +301,7 @@ export async function processPayout(data: {
   if (!adminUser) throw new Error("Unauthorized");
 
   // Calculate payout details
-  const payoutDetails = await calculatePayout(data.userId, data.schemeId);
+  const payoutDetails = await calculatePayout(data.userId, data.schemeId, data.sinceDate);
 
   if (payoutDetails.netPayout <= 0) {
     return { error: "No funds available for payout" };
@@ -320,6 +364,22 @@ export async function processPayout(data: {
       console.error("Error recording service charge:", feeError);
       // Don't return error here as withdrawal was successful
     }
+  }
+
+  // Detach all transactions for this member in this scheme from the scheme itself.
+  // This satisfies:
+  // 1. "transaction history should be in the transaction table" (records remain in the table)
+  // 2. "should not show in the scheme" (they no longer have a scheme_id)
+  // 3. "the member should not access it" (filtered by scheme_id)
+  // 4. "clear the grid data" (grid uses scheme_id)
+  const { error: detachError } = await supabase
+    .from('transactions')
+    .update({ scheme_id: null })
+    .eq('user_id', data.userId)
+    .eq('scheme_id', data.schemeId);
+
+  if (detachError) {
+    console.error("Error detaching transactions after payout:", detachError);
   }
 
   // Remove member from scheme after payout

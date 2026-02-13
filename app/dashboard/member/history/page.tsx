@@ -14,14 +14,33 @@ export default async function TransactionHistoryPage() {
     redirect("/auth/login");
   }
 
-  const { data: transactions } = await supabase
+  // Fetch active memberships to get join dates
+  const { data: activeMemberships } = await supabase
+    .from('scheme_members')
+    .select('joined_at')
+    .eq('user_id', user.id)
+    .eq('status', 'active');
+
+  const earliestActiveJoinDate = activeMemberships && activeMemberships.length > 0
+    ? new Date(Math.min(...activeMemberships.map(m => new Date(m.joined_at).getTime()))).toISOString()
+    : null;
+
+  let query = supabase
     .from('transactions')
     .select(`
       *,
       schemes (name)
     `)
-    .eq('user_id', user.id)
-    .order('date', { ascending: false });
+    .eq('user_id', user.id);
+
+  if (earliestActiveJoinDate) {
+    query = query.gte('date', earliestActiveJoinDate);
+  } else {
+    // If no active schemes, don't show any history
+    query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+  }
+
+  const { data: transactions } = await query.order('date', { ascending: false });
 
   return (
     <div className="flex flex-col gap-6">

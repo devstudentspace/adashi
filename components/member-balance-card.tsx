@@ -13,6 +13,7 @@ interface MemberBalanceCardProps {
   memberName: string;
   memberPhone?: string;
   schemeType: string;
+  joinedAt?: string;
 }
 
 interface BalanceData {
@@ -22,14 +23,14 @@ interface BalanceData {
   totalFees: number;
 }
 
-export function MemberBalanceCard({ userId, schemeId, memberName, memberPhone, schemeType }: MemberBalanceCardProps) {
+export function MemberBalanceCard({ userId, schemeId, memberName, memberPhone, schemeType, joinedAt }: MemberBalanceCardProps) {
   const [balanceData, setBalanceData] = useState<BalanceData | null>(null);
   const [showPayoutForm, setShowPayoutForm] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadBalance = async () => {
     try {
-      const data = await calculateMemberBalance(userId, schemeId);
+      const data = await calculateMemberBalance(userId, schemeId, joinedAt);
       setBalanceData(data);
     } catch (error) {
       console.error('Failed to load balance:', error);
@@ -86,6 +87,7 @@ export function MemberBalanceCard({ userId, schemeId, memberName, memberPhone, s
           memberName={memberName}
           memberPhone={memberPhone}
           onSuccess={handlePayoutSuccess}
+          joinedAt={joinedAt}
         />
       </div>
     );
