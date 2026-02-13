@@ -1,0 +1,128 @@
+Digital Adashi & Cooperative Management System
+
+Prepared by: [Your Name / Company Name]
+Date: January 28, 2026
+
+1. Executive Summary
+
+"Modernizing Trust, Securing Savings."
+
+The traditional Adashi, Akawo, and Ajo systems are the heartbeat of local finance in Nigeria. However, as your customer base grows, using notebooks and paper cards becomes risky. Papers get lost, calculations get complicated, and distant customers struggle to trust that their money is safe.
+
+We propose a Digital Adashi Manager—a custom software solution designed to automate your operations. Whether you are running a daily contribution scheme (Akawo), a rotating circle (Kwanta), or a long-term target savings plan (Ajita), this software will serve as your digital accountant.
+
+This tool is not just about recording money; it is about scaling your business. It gives you the power to manage hundreds of people without mistakes, building the kind of "Digital Trust" that attracts modern customers.
+
+2. Understanding Your Needs
+
+We have identified three specific models your software will handle:
+
+The "Akawo" Model (Daily Contributions):
+
+How it works: One Manager collects daily cash from many individuals.
+
+The Problem: Marking paper cards is slow, and customers often fear the manager might disappear.
+
+Our Solution: A digital ledger where you record payments instantly, and the system automatically calculates the month-end payout (minus your service charge).
+
+Adashi na Kwanta (Rotating / ROSCA):
+
+How it works: A group contributes, and one person takes the "pot" each week/month.
+
+The Problem: confusion on "whose turn is it?" and tracking who has defaulted.
+
+Our Solution: An automated queue system that clearly shows the payout roster and flags anyone who is owing.
+
+Adashi na Ajita (Accumulating):
+
+How it works: Savings are held for a long period (e.g., till Sallah or Christmas).
+
+The Problem: The temptation to spend the cash before the target date.
+
+Our Solution: A "Locked Wallet" feature where records are kept until the maturity date, ensuring accurate bulk payouts.
+
+3. Proposed Packages & Investment
+
+To ensure this solution fits your budget and growth stage, we have broken it down into three packages.
+
+Package 1: The "Mai-Riku" (Manager's Ledger)
+
+Best for: Individual Managers who want to stop using paper cards but keep things simple.
+
+This is a Manager-Only system. Your customers do not log in. You use it as a powerful electronic notebook on your phone or laptop.
+
+Features:
+
+Secure Admin Login: Only you have access.
+
+Customer Profiles: Store names, phone numbers, and photos of your savers.
+
+Digital Card: Record daily payments with one click.
+
+Auto-Calculation: The system automatically calculates the payout and subtracts your "One Day" fee.
+
+Offline Capability: Works even with poor internet (data syncs when network returns).
+
+SMS Alerts: Send a manual SMS receipt to clients from the app.
+
+** Investment Estimate:** ₦350,000 – ₦500,000
+(One-time development fee)
+
+Package 2: The "Amana" (Transparency Suite)
+
+Best for: Cooperatives and Managers who want to build extreme trust with their members.
+
+This package allows your customers to engage. They can download the app (or visit a web link) to see their money, but they cannot edit it.
+
+Includes everything in Package 1, PLUS:
+
+Customer Login Portal: Members can log in to view their savings history (Read-Only).
+
+Live Dashboard: For "Kwanta" groups, members can see the payout list and whose turn is next.
+
+Automated Notifications: Customers receive an instant WhatsApp/SMS alert immediately after you record a payment.
+
+Receipt Generation: Auto-generate PDF receipts for end-of-month payouts.
+
+** Investment Estimate:** ₦850,000 – ₦1,200,000
+(One-time development fee)
+
+Package 3: The "Oga Boss" (Full Automation)
+
+Best for: Large Scale Businessmen & Registered Cooperatives.
+
+This is a full FinTech experience similar to apps like PiggyVest or OPay, but customized for local Adashi.
+
+Includes everything in Package 2, PLUS:
+
+Online Payments: Users can pay via Bank Transfer or Card (Paystack/Flutterwave) and the system auto-updates their card.
+
+Agent Management: Create accounts for your "boys" (field agents) to go out and collect cash. You can monitor exactly how much each agent collected in real-time.
+
+Wallet System: Users can request withdrawals directly to their bank accounts.
+
+BVN/NIN Verification: To prevent fraud and ghost users.
+
+** Investment Estimate:** ₦2,500,000 – ₦4,500,000+
+(Depends on specific payment integrations)
+
+4. Why Work With [Your Name/Company]?
+
+Local Understanding: We understand that Adashi is different from Western banking. We respect the rules of Kwanta and Ajita.
+
+Simplicity: We build software that is as easy to use as WhatsApp. You don't need to be a tech expert.
+
+Support: We provide 3 months of free technical support after launch to ensure your business runs smoothly.
+
+5. Next Steps
+
+We recommend starting with Package 2 (The Amana Suite). It offers the perfect balance of cost and customer trust.
+
+If this proposal aligns with your vision, we are ready to begin the Design Phase immediately.
+
+Signed,
+
+Abdulhalim Muhammad Yaro
+Lead Developer / Project Manager
+09071777361
+abdulmuhd7177@gmail.com
