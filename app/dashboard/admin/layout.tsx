@@ -13,20 +13,10 @@ export default async function AdminLayout({
     redirect("/auth/login");
   }
 
-  // 1. Check Metadata first (Fastest)
-  const isMetadataAdmin = user.user_metadata?.role === 'admin' || user.email?.includes('admin');
+  const isAdmin = user.user_metadata?.role === 'admin' || user.email?.includes('admin');
   
-  if (!isMetadataAdmin) {
-     // 2. Double check DB (Safest)
-     const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-     
-     if (profile?.role !== 'admin') {
-         redirect("/dashboard/member");
-     }
+  if (!isAdmin) {
+    redirect("/dashboard/member");
   }
 
   return <>{children}</>;

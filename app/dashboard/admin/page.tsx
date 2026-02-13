@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { 
   Users, 
@@ -16,11 +15,6 @@ import { Input } from "@/components/ui/input";
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    redirect("/auth/login");
-  }
 
   // Fetch real counts
   const { count: memberCount } = await supabase

@@ -2,8 +2,6 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import SchemesList from './schemes-list';
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 
 function SchemesSkeleton() {
   return (
@@ -32,13 +30,6 @@ function SchemesSkeleton() {
 }
 
 export default async function SchemesPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/auth/login");
-  }
-
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-8">
