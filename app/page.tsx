@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ShieldCheck, PieChart, Users, Smartphone } from "lucide-react";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
             <span>Adashi<span className="text-foreground">Manager</span></span>
           </div>
           <nav className="flex items-center gap-4">
+            <ThemeSwitcher />
             <Link href="/auth/login">
               <Button variant="ghost" className="font-medium">
                 Log in

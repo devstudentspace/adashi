@@ -322,6 +322,21 @@ export async function processPayout(data: {
     }
   }
 
+  // Remove member from scheme after payout
+  // This effectively "destroys" the member's association with the scheme
+  const { error: removeError } = await supabase
+    .from('scheme_members')
+    .delete()
+    .eq('user_id', data.userId)
+    .eq('scheme_id', data.schemeId);
+
+  if (removeError) {
+    console.error("Error removing member from scheme after payout:", removeError);
+    // We don't necessarily want to fail the whole action if the removal fails, 
+    // but the user requested this feature specifically.
+  }
+
+  revalidatePath(`/dashboard/admin/schemes`);
   revalidatePath(`/dashboard/admin/schemes/${data.schemeId}`);
   revalidatePath(`/dashboard/admin/schemes/${data.schemeId}/member/${data.userId}`);
   revalidatePath(`/dashboard/member`);
@@ -334,4 +349,69 @@ export async function processPayout(data: {
       processedAt: new Date().toISOString()
     }
   };
+}
+
+export async function updateMember(userId: string, formData: {
+  fullName: string;
+  phoneNumber: string;
+  altPhoneNumber?: string;
+  homeAddress?: string;
+}) {
+  const adminClient = createAdminClient();
+  
+  const { data: { user: adminUser } } = await adminClient.auth.getUser();
+  if (!adminUser) throw new Error("Unauthorized");
+
+  // Update Auth User Metadata
+  const { error: authError } = await adminClient.auth.admin.updateUserById(userId, {
+    user_metadata: {
+      full_name: formData.fullName,
+      phone_number: formData.phoneNumber,
+      alt_phone_number: formData.altPhoneNumber,
+      home_address: formData.homeAddress,
+    }
+  });
+
+  if (authError) {
+    console.error("Error updating auth user:", authError);
+    return { error: authError.message };
+  }
+
+  // Update Profile table explicitly to be sure
+  const { error: profileError } = await adminClient
+    .from('profiles')
+    .update({
+      full_name: formData.fullName,
+      phone_number: formData.phoneNumber,
+      alt_phone_number: formData.altPhoneNumber,
+      home_address: formData.homeAddress,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId);
+
+  if (profileError) {
+    console.error("Error updating profile:", profileError);
+    return { error: profileError.message };
+  }
+
+  revalidatePath("/dashboard/admin/members");
+  return { success: true };
+}
+
+export async function deleteMember(userId: string) {
+  const adminClient = createAdminClient();
+  
+  const { data: { user: adminUser } } = await adminClient.auth.getUser();
+  if (!adminUser) throw new Error("Unauthorized");
+
+  // Delete from Auth (this will trigger profile deletion if set up, or we might need to do it manually)
+  const { error } = await adminClient.auth.admin.deleteUser(userId);
+
+  if (error) {
+    console.error("Error deleting user:", error);
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/admin/members");
+  return { success: true };
 }

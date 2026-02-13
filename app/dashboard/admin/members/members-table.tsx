@@ -1,41 +1,53 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AdminMemberActions } from "@/components/admin-member-actions";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 export default async function MembersTable({ 
   query, 
-  view = "auto" 
+  view = "auto",
+  page = 1,
+  pageSize = 10
 }: { 
   query?: string, 
-  view?: string 
+  view?: string,
+  page?: number,
+  pageSize?: number
 }) {
   const supabase = createAdminClient();
 
-  // Fetch profiles with role 'member'
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  // Fetch profiles with role 'member' and count
   let dbQuery = supabase
     .from('profiles')
-    .select('*')
+    .select('*', { count: 'exact' })
     .eq('role', 'member');
 
   if (query) {
     dbQuery = dbQuery.or(`full_name.ilike.%${query}%,phone_number.ilike.%${query}%`);
   }
 
-  const { data: members, error } = await dbQuery.order('created_at', { ascending: false });
+  const { data: members, error, count } = await dbQuery
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (error) {
       console.error("Error fetching members:", error);
       return <div className="text-red-500 p-4 border rounded-lg bg-red-50 text-sm">Failed to load members. Please refresh.</div>;
   }
 
+  const totalPages = Math.ceil((count || 0) / pageSize);
+
   return (
     <div className="space-y-4">
-      {/* Grid View (Visible if view is grid OR auto) */}
+      {/* Grid View (Visible if view is grid OR (view is auto AND mobile)) */}
       <div className={cn(
         "grid grid-cols-1 gap-4",
-        view === "grid" ? "sm:grid-cols-2 lg:grid-cols-3" : "md:hidden"
+        view === "grid" ? "sm:grid-cols-2 lg:grid-cols-3" : (view === "auto" ? "md:hidden" : "hidden")
       )}>
         {members && members.length > 0 ? (
           members.map((member) => (
@@ -50,7 +62,7 @@ export default async function MembersTable({
                     <Badge variant="secondary" className="text-[10px] h-4">ACTIVE</Badge>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="h-8 text-xs">View</Button>
+                <AdminMemberActions member={member} />
               </div>
               
               <div className="grid grid-cols-2 gap-2 pt-2 border-t text-sm">
@@ -78,10 +90,10 @@ export default async function MembersTable({
         )}
       </div>
 
-      {/* Table View (Visible if view is table OR auto) */}
+      {/* Table View (Visible if view is table OR (view is auto AND desktop)) */}
       <div className={cn(
         "overflow-hidden rounded-xl border bg-card",
-        view === "table" ? "block" : "hidden md:block"
+        view === "table" ? "block" : (view === "auto" ? "hidden md:block" : "hidden")
       )}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -123,7 +135,7 @@ export default async function MembersTable({
                        {new Date(member.created_at).toLocaleDateString()}
                     </td>
                     <td className="p-4 text-right">
-                      <Button variant="ghost" size="sm" className="h-8">View</Button>
+                      <AdminMemberActions member={member} />
                     </td>
                   </tr>
                 ))
@@ -136,6 +148,13 @@ export default async function MembersTable({
           </table>
         </div>
       </div>
+
+      <PaginationControls 
+        currentPage={page}
+        pageSize={pageSize}
+        totalItems={count || 0}
+        totalPages={totalPages}
+      />
     </div>
   );
 }

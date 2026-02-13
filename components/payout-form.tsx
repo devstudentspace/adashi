@@ -257,11 +257,9 @@ export function PayoutForm({ userId, schemeId, memberName, memberPhone, onSucces
            `Process Payout of ₦${payoutDetails.netPayout.toLocaleString()}`}
         </Button>
 
-        <p className="text-xs text-muted-foreground text-center">
-          This action will record the withdrawal and adjust the member's balance.
-          {processFullAmount ? ' Full amount will be processed.' : 
-           useCustomAmount ? ` Custom amount ₦${customAmount.toLocaleString()} will be processed.` :
-           ` Service charges (₦${payoutDetails.serviceCharge.toLocaleString()}) will be deducted.`}
+        <p className="text-xs text-destructive text-center font-medium bg-red-50 p-2 rounded border border-red-100">
+          This action will record the withdrawal and <strong>automatically remove the member from this scheme</strong>.
+          The transaction history will be preserved, but the member will no longer be active in this scheme.
         </p>
       </CardContent>
     </Card>

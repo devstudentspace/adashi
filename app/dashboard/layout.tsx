@@ -33,6 +33,7 @@ async function DashboardNavContent({ mobile = false }: { mobile?: boolean }) {
         { label: 'Overview', icon: LayoutDashboard, href: '/dashboard/admin' },
         { label: 'Members', icon: Users, href: '/dashboard/admin/members' },
         { label: 'Schemes', icon: Wallet, href: '/dashboard/admin/schemes' },
+        { label: 'Transactions', icon: History, href: '/dashboard/admin/transactions' },
         { label: 'Settings', icon: Settings, href: '/dashboard/profile' },
       ]
     : [
@@ -59,9 +60,6 @@ async function DashboardNavContent({ mobile = false }: { mobile?: boolean }) {
           </Link>
         ))}
       </nav>
-      <div className="p-4 border-t space-y-4">
-         <ThemeSwitcher />
-      </div>
     </div>
   );
 }
@@ -104,6 +102,7 @@ async function DashboardHeaderContent() {
             <span>Adashi</span>
           </Link>
           <div className="flex items-center gap-2">
+             <ThemeSwitcher />
              <UserNav user={user} />
              <Sheet>
                <SheetTrigger asChild>
@@ -126,6 +125,7 @@ async function DashboardHeaderContent() {
               {isAdmin ? "Admin Portal" : "Member Portal"}
            </div>
            <div className="flex items-center gap-4">
+              <ThemeSwitcher />
               <UserNav user={user} />
            </div>
       </div>
