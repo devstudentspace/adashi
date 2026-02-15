@@ -235,12 +235,19 @@ export default async function SchemeDetailsPage({ params }: Props) {
                 <p className="font-medium capitalize">{scheme.frequency}</p>
               </div>
             </div>
-            {Object.keys(scheme.rules).length > 0 && (
+            {(scheme.description || Object.keys(scheme.rules).length > 0) && (
               <div className="mt-6 pt-6 border-t">
-                <p className="text-sm text-muted-foreground mb-2">Rules</p>
-                <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
-                  {JSON.stringify(scheme.rules, null, 2)}
-                </pre>
+                <p className="text-sm text-muted-foreground mb-2">Description & Rules</p>
+                {scheme.description && (
+                  <div className="mb-4 p-3 bg-muted rounded-md">
+                    <p className="whitespace-pre-wrap">{scheme.description}</p>
+                  </div>
+                )}
+                {Object.keys(scheme.rules).length > 0 && (
+                  <pre className="bg-muted p-3 rounded-md text-xs overflow-x-auto">
+                    {JSON.stringify(scheme.rules, null, 2)}
+                  </pre>
+                )}
               </div>
             )}
           </div>

@@ -27,7 +27,7 @@ export function CreateSchemeForm() {
   const [contributionAmount, setContributionAmount] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [endDate, setEndDate] = useState('');
-  const [rules, setRules] = useState('');
+  const [descriptionAndRules, setDescriptionAndRules] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -52,28 +52,60 @@ export function CreateSchemeForm() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) throw new Error('User not authenticated');
+      
+      console.log('Current user ID:', user.id);
 
       // Prepare scheme data
       const schemeData = {
         name: name.trim(),
         type,
-        contribution_amount: parseFloat(contributionAmount),
+        contribution_amount: parseFloat(contributionAmount) || 0,
         frequency,
+        description: descriptionAndRules.trim(),
         ...(type === 'ajita' && endDate && { end_date: endDate }),
-        rules: rules ? JSON.parse(rules) : {},
+        rules: {}, // Keep rules as empty object for future structured data
         admin_id: user.id,
       };
 
-      // Insert the new scheme
-      const { data, error: insertError } = await supabase
-        .from('schemes')
-        .insert([schemeData])
-        .select()
-        .single();
+      console.log('Attempting to insert scheme data:', schemeData);
+      
+      // Additional validation
+      if (!schemeData.name) {
+        throw new Error('Scheme name is required');
+      }
+      if (schemeData.contribution_amount <= 0) {
+        throw new Error('Contribution amount must be greater than 0');
+      }
+      if (!schemeData.type) {
+        throw new Error('Scheme type is required');
+      }
+      if (!schemeData.frequency) {
+        throw new Error('Frequency is required');
+      }
+      if (!schemeData.admin_id) {
+        throw new Error('Admin ID is required');
+      }
 
-      if (insertError) throw insertError;
+      console.log('Final scheme data before insertion:', schemeData);
+
+      const insertResult = await supabase
+        .from('schemes')
+        .insert([schemeData]);
+
+      console.log('Insert result:', insertResult);
+
+      if (insertResult.error) {
+        console.error('Supabase insert error details:', insertResult.error);
+        throw insertResult.error;
+      }
 
       // Success - redirect to schemes list or dashboard
+      // Reset form fields
+      setName('');
+      setContributionAmount('');
+      setFrequency('daily');
+      setEndDate('');
+      setDescriptionAndRules('');
       router.push('/dashboard/admin/schemes');
     } catch (error: unknown) {
       console.error('Error creating scheme:', error);
@@ -159,15 +191,15 @@ export function CreateSchemeForm() {
               )}
               
               <div className="grid gap-2">
-                <Label htmlFor="rules">Additional Rules (JSON)</Label>
+                <Label htmlFor="descriptionAndRules">Description and Rules</Label>
                 <Input
-                  id="rules"
-                  placeholder='e.g., {"service_charge_percent": 5}'
-                  value={rules}
-                  onChange={(e) => setRules(e.target.value)}
+                  id="descriptionAndRules"
+                  placeholder="Enter description and rules for this scheme (optional)"
+                  value={descriptionAndRules}
+                  onChange={(e) => setDescriptionAndRules(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Advanced settings in JSON format (optional)
+                  Describe the purpose, guidelines, and any special rules for this savings scheme
                 </p>
               </div>
               
