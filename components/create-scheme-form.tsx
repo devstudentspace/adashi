@@ -52,8 +52,6 @@ export function CreateSchemeForm() {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) throw new Error('User not authenticated');
-      
-      console.log('Current user ID:', user.id);
 
       // Prepare scheme data
       const schemeData = {
@@ -67,8 +65,6 @@ export function CreateSchemeForm() {
         admin_id: user.id,
       };
 
-      console.log('Attempting to insert scheme data:', schemeData);
-      
       // Additional validation
       if (!schemeData.name) {
         throw new Error('Scheme name is required');
@@ -86,16 +82,11 @@ export function CreateSchemeForm() {
         throw new Error('Admin ID is required');
       }
 
-      console.log('Final scheme data before insertion:', schemeData);
-
       const insertResult = await supabase
         .from('schemes')
         .insert([schemeData]);
 
-      console.log('Insert result:', insertResult);
-
       if (insertResult.error) {
-        console.error('Supabase insert error details:', insertResult.error);
         throw insertResult.error;
       }
 
